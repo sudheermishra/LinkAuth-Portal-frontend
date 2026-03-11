@@ -1,10 +1,38 @@
-# (Frontend)
+# LinkAuth Portal — Frontend
 
-Next.js app with LinkedIn sign-in and Redux auth state.
+Next.js frontend with LinkedIn OAuth login and Redux state management.
 
-## Stack
+## Tech Stack
 
-- **Next.js 16** (App Router) · **React 19** · **Tailwind CSS 4** · **Redux Toolkit**
+- **Next.js 16** (App Router)
+- **React 19**
+- **Tailwind CSS 4**
+- **Redux Toolkit** — Auth state management
+- **react-redux** — React bindings for Redux
+
+## Project Structure
+
+```
+frontend/
+├── src/
+│   ├── app/
+│   │   ├── auth-success/
+│   │   │   └── page.jsx        # Parses user from URL, stores in Redux, redirects home
+│   │   ├── login/
+│   │   │   └── page.jsx        # Login page with LinkedIn button
+│   │   ├── globals.css         # Global styles + Tailwind
+│   │   ├── layout.jsx          # Root layout with StoreProvider
+│   │   ├── page.jsx            # Home page
+│   │   └── StoreProvider.jsx   # Wraps app with Redux Provider
+│   ├── components/
+│   │   └── UserSection.jsx     # Shows login button or user profile card
+│   └── store/
+│       ├── authSlice.js        # Redux slice — setUser / clearUser
+│       └── index.js            # Redux store config
+├── .env.local                  # Environment variables (not committed)
+├── next.config.mjs
+└── package.json
+```
 
 ## Setup
 
@@ -12,36 +40,69 @@ Next.js app with LinkedIn sign-in and Redux auth state.
 npm install
 ```
 
-Create a `.env` (or `.env.local`) with:
+Create a `.env.local` file in the root:
 
 ```env
 NEXT_PUBLIC_BACKEND_URL=http://localhost:5001
 ```
 
-The backend must be running (e.g. on port 5001) for LinkedIn login.
-
 ## Run
 
-| Command      | Description        |
-| ------------ | ------------------- |
-| `npm run dev` | Dev server (default port 3000) |
-| `npm run build` | Production build   |
-| `npm run start` | Run production build |
+```bash
+# Development
+npm run dev
 
-## Auth flow
+# Production build
+npm run build
+npm start
+```
 
-1. **Login** — User goes to `/login` and clicks “Continue with LinkedIn”. They are sent to the backend at `{BACKEND_URL}/auth/linkedin`.
-2. **Callback** — Backend completes LinkedIn OAuth and redirects to `http://localhost:3000/auth-success?user=<encoded-user>`.
-3. **Auth success** — The app parses `user` from the URL, saves it in Redux (`auth.user`), then redirects to `/`.
-4. **Home** — If `auth.user` is set, the home page shows profile and a “Log out” button; otherwise it shows “Log in”.
-5. **Logout** — Clears `auth.user` in Redux. No persistence: a full page reload resets auth.
+## Auth Flow
 
-## Project structure
+```
+1. User visits / — sees "Log in" button
+2. Clicks "Log in" → goes to /login
+3. Clicks "Continue with LinkedIn"
+4. Redirected to backend /auth/linkedin
+5. Backend handles OAuth with LinkedIn
+6. LinkedIn redirects back to backend callback
+7. Backend redirects to /auth-success?user=<encoded-json>
+8. auth-success page parses user, dispatches setUser to Redux
+9. Redirects to / — profile card shown
+10. User clicks "Log out" → clearUser dispatched → back to login button
+```
 
-- `src/app/` — Routes: `page.jsx` (home), `login/`, `auth-success/`, `layout.jsx`, `StoreProvider.jsx`
-- `src/components/` — `UserSection.jsx` (home content: login link or user card + logout)
-- `src/store/` — Redux: `index.js` (store), `authSlice.js` (user state, `setUser` / `clearUser`)
+## Pages
 
-## Backend expectations
+| Route | Description |
+|-------|-------------|
+| `/` | Home — shows login button or profile card |
+| `/login` | LinkedIn login button |
+| `/auth-success` | Handles OAuth callback, stores user in Redux |
 
-- **GET** `{BACKEND_URL}/auth/linkedin` — Redirects to LinkedIn, then back to backend callback (e.g. `/auth/linkedin/callback`), then redirects to frontend `http://localhost:3000/auth-success?user=<url-encoded-json>` with the user object in the `user` query param.
+## Redux State
+
+```js
+// state.auth
+{
+  user: null | {
+    name: "John Doe",
+    email: "john@example.com",
+    picture: "https://..."
+  }
+}
+```
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_BACKEND_URL` | Backend base URL (no trailing slash) |
+
+## Deployment (Vercel)
+
+- Connect GitHub repo to Vercel
+- Set environment variable: `NEXT_PUBLIC_BACKEND_URL=https://linkauth-portal-backend.onrender.com`
+- Deploy automatically on push to `main`
+
+Live URL: `https://link-auth-portal-frontend.vercel.app`
